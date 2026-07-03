@@ -1,6 +1,6 @@
 import { Copy, Pencil, Trash2 } from "lucide-react";
 import type { FarmRecord, Project } from "@/types";
-import { formatRupiah } from "@/lib/format";
+import { formatRupiah, todayISO } from "@/lib/format";
 import { typeIcon, typeLabel } from "@/lib/labels";
 import { hstFromDate, hstLabel } from "@/lib/hst";
 
@@ -8,6 +8,16 @@ function recordTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--:--";
   return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+}
+
+function recordDateLabel(date: string) {
+  const parsed = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date || "Tanggal tidak jelas";
+  return parsed.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+}
+
+function isOldRecordDate(date: string) {
+  return Boolean(date) && date < todayISO();
 }
 
 export function TimelineItem({
@@ -24,13 +34,15 @@ export function TimelineItem({
   onCopy: (record: FarmRecord) => void;
 }) {
   const recordHst = hstFromDate(project.planting_date, record.record_date);
+  const isOld = isOldRecordDate(record.record_date);
 
   return (
     <div className="relative rounded-[1.5rem] bg-green-50 p-4">
       <div className="flex items-start gap-3">
-        <div className="w-14 shrink-0 text-center">
+        <div className="w-16 shrink-0 text-center">
           <p className="text-[11px] font-black text-green-700">{recordTime(record.created_at)}</p>
           <p className="mt-1 rounded-full bg-white px-2 py-1 text-[10px] font-black text-green-800 shadow-sm">{hstLabel(recordHst)}</p>
+          <p className="mt-1 text-[10px] font-black text-zinc-500">{recordDateLabel(record.record_date)}</p>
           <span className="mx-auto mt-2 grid h-10 w-10 place-items-center rounded-full bg-white text-2xl shadow-sm">
             {typeIcon[record.type]}
           </span>
@@ -38,9 +50,16 @@ export function TimelineItem({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-green-700">
-                {typeLabel[record.type]} • {record.category}
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-green-700">
+                  {typeLabel[record.type]} • {record.category}
+                </p>
+                {isOld ? (
+                  <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black text-amber-800">
+                    📚 Catatan Lama
+                  </span>
+                ) : null}
+              </div>
               <h4 className="mt-1 font-black text-green-950">{record.title}</h4>
             </div>
             {record.amount > 0 && <p className="shrink-0 text-sm font-black text-green-900">{formatRupiah(record.amount)}</p>}

@@ -7,6 +7,23 @@ import { formatRupiah, todayISO } from "@/lib/format";
 import { typeIcon, typeLabel } from "@/lib/labels";
 import { Field, Input } from "@/components/ui/FormField";
 
+type DateMode = "today" | "other";
+
+function isOldRecordDate(date: string) {
+  return Boolean(date) && date < todayISO();
+}
+
+function isFutureRecordDate(date: string) {
+  return Boolean(date) && date > todayISO();
+}
+
+function humanDateInfo(date: string) {
+  if (!date) return "";
+  if (date === todayISO()) return "Catatan hari ini";
+  if (isOldRecordDate(date)) return "Catatan lama dari buku/catatan manual";
+  return "Tanggal di depan hari ini";
+}
+
 export function QuickAddForm({
   projects,
   defaultProjectId,
@@ -24,6 +41,8 @@ export function QuickAddForm({
   initialRecord?: FarmRecord;
   initialType?: RecordType;
 }) {
+  const today = todayISO();
+  const initialDate = initialRecord?.record_date || today;
   const [projectId, setProjectId] = useState(initialRecord?.project_id || defaultProjectId);
   const [type, setType] = useState<RecordType>(initialRecord?.type || initialType || "expense");
   const [category, setCategory] = useState(initialRecord?.category || "Pupuk");
@@ -33,7 +52,8 @@ export function QuickAddForm({
   const [quantity, setQuantity] = useState(initialRecord?.quantity ? String(initialRecord.quantity) : "");
   const [price, setPrice] = useState(initialRecord?.price_per_unit ? String(initialRecord.price_per_unit) : "");
   const [description, setDescription] = useState(initialRecord?.description || "");
-  const [date, setDate] = useState(initialRecord?.record_date || todayISO());
+  const [dateMode, setDateMode] = useState<DateMode>(initialDate === today ? "today" : "other");
+  const [date, setDate] = useState(initialDate);
 
   useEffect(() => {
     const typeCategories = defaultCategories.filter((item) => item.type === type);
@@ -54,12 +74,19 @@ export function QuickAddForm({
   }
 
   const categories = defaultCategories.filter((item) => item.type === type);
+  const recordDate = dateMode === "today" ? today : date;
   const computedAmount = type === "harvest" ? Number(quantity || 0) * Number(price || 0) : Number(amount || 0);
 
   function submit() {
     const finalCategory = customCategory.trim() || category;
     if (!projectId) return alert("Pilih proyek dulu.");
     if (!title.trim()) return alert("Judul catatan wajib diisi.");
+    if (!recordDate) return alert("Tanggal catatan wajib diisi.");
+
+    if (isFutureRecordDate(recordDate)) {
+      const ok = confirm("Tanggal catatan lebih dari hari ini. Tetap simpan?");
+      if (!ok) return;
+    }
 
     onSave({
       id: initialRecord?.id,
@@ -72,7 +99,7 @@ export function QuickAddForm({
       quantity: quantity ? Number(quantity) : undefined,
       unit: type === "harvest" ? "kg" : undefined,
       price_per_unit: price ? Number(price) : undefined,
-      record_date: date,
+      record_date: recordDate,
       created_at: initialRecord?.created_at,
     });
   }
@@ -82,6 +109,8 @@ export function QuickAddForm({
       <button onClick={onCancel} className="font-bold text-green-800">← Kembali</button>
       <div className="rounded-[2rem] bg-white p-5 shadow-sm">
         <h2 className="text-xl font-black text-green-950">{initialRecord ? "Edit Catatan" : `${typeIcon[type]} Catat ${typeLabel[type]}`}</h2>
+        <p className="mt-1 text-sm font-bold text-zinc-500">Bisa catat hari ini, atau masukkan catatan lama dari buku.</p>
+
         <div className="mt-5 space-y-4">
           <Field label="Pilih proyek">
             <select value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-full rounded-2xl border border-green-200 bg-green-50 px-4 py-4 font-bold outline-none">
@@ -102,6 +131,34 @@ export function QuickAddForm({
             ))}
           </div>
 
+          <Field label="Tanggal kejadian">
+            <div className="grid grid-cols-2 gap-2 rounded-3xl bg-green-50 p-2">
+              <button
+                type="button"
+                onClick={() => setDateMode("today")}
+                className={`rounded-2xl px-3 py-4 text-sm font-black ${dateMode === "today" ? "bg-green-600 text-white shadow-lg shadow-green-900/20" : "text-green-900"}`}
+              >
+                Hari Ini
+              </button>
+              <button
+                type="button"
+                onClick={() => setDateMode("other")}
+                className={`rounded-2xl px-3 py-4 text-sm font-black ${dateMode === "other" ? "bg-green-600 text-white shadow-lg shadow-green-900/20" : "text-green-900"}`}
+              >
+                Tanggal Lain
+              </button>
+            </div>
+          </Field>
+
+          {dateMode === "other" ? (
+            <Input label="Pilih tanggal kejadian" type="date" value={date} onChange={setDate} />
+          ) : null}
+
+          <div className={`rounded-2xl px-4 py-3 text-sm font-black ${isOldRecordDate(recordDate) ? "bg-amber-50 text-amber-800" : isFutureRecordDate(recordDate) ? "bg-red-50 text-red-700" : "bg-green-50 text-green-900"}`}>
+            {isOldRecordDate(recordDate) ? "📚 " : isFutureRecordDate(recordDate) ? "⚠️ " : "📅 "}
+            {humanDateInfo(recordDate)}
+          </div>
+
           <Field label="Kategori">
             <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-2xl border border-green-200 bg-green-50 px-4 py-4 font-bold outline-none">
               {categories.map((item) => <option key={item.id} value={item.name}>{item.name}</option>)}
@@ -109,7 +166,6 @@ export function QuickAddForm({
           </Field>
           <Input label="Kategori custom opsional" value={customCategory} onChange={setCustomCategory} placeholder="Contoh: Dolomit" />
           <Input label="Judul" value={title} onChange={setTitle} placeholder={type === "expense" ? "Beli NPK" : type === "harvest" ? "Panen pertama" : "Catatan singkat"} />
-          <Input label="Tanggal" type="date" value={date} onChange={setDate} />
 
           {type === "harvest" ? (
             <div className="grid grid-cols-2 gap-3">

@@ -45,6 +45,11 @@ function normalizeProject(row: any): Project {
   };
 }
 
+function normalizeRecordDate(value: string | null | undefined) {
+  if (!value) return new Date().toISOString().slice(0, 10);
+  return String(value).slice(0, 10);
+}
+
 function normalizeRecord(row: any): FarmRecord {
   return {
     id: String(row.id),
@@ -57,7 +62,7 @@ function normalizeRecord(row: any): FarmRecord {
     quantity: row.quantity === null || row.quantity === undefined ? undefined : Number(row.quantity),
     unit: row.unit || undefined,
     price_per_unit: row.price_per_unit === null || row.price_per_unit === undefined ? undefined : Number(row.price_per_unit),
-    record_date: row.record_date,
+    record_date: normalizeRecordDate(row.record_date),
     photo_url: row.photo_url || undefined,
     created_at: row.created_at || new Date().toISOString(),
     updated_at: row.updated_at || row.created_at || new Date().toISOString(),
