@@ -1,0 +1,19 @@
+{
+  "name": "KAS PETANI",
+  "short_name": "Kas Petani",
+  "description": "Catatan modal, kegiatan, panen, dan laporan lahan tani.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FAFAFA",
+  "theme_color": "#166534",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
