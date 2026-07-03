@@ -84,3 +84,24 @@ alter table categories disable row level security;
 alter table records disable row level security;
 
 notify pgrst, 'reload schema';
+
+-- Admin Petani MVP
+-- Jalankan bagian ini kalau ingin memakai /admin.
+create table if not exists profiles (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  phone text,
+  role text not null default 'farmer' check (role in ('admin', 'farmer')),
+  status text not null default 'aktif' check (status in ('aktif', 'nonaktif')),
+  note text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table projects
+add column if not exists farmer_id uuid references profiles(id) on delete set null;
+
+create index if not exists projects_farmer_id_idx on projects(farmer_id);
+
+alter table profiles disable row level security;
+notify pgrst, 'reload schema';
