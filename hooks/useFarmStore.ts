@@ -19,7 +19,7 @@ function isPlantingRecord(record: FarmRecordDraft | FarmRecord) {
   return record.type === "activity" && text.includes("tanam");
 }
 
-export function useFarmStore() {
+export function useFarmStore(farmerId?: string) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [records, setRecords] = useState<FarmRecord[]>([]);
   const [screen, setScreen] = useState<AppScreen>("home");
@@ -35,7 +35,7 @@ export function useFarmStore() {
     try {
       setLoading(true);
       setError("");
-      const data = await loadFarmData();
+      const data = await loadFarmData(farmerId);
       setProjects(data.projects);
       setRecords(data.records);
       setDataSource(data.source);
@@ -45,7 +45,7 @@ export function useFarmStore() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [farmerId]);
 
   useEffect(() => {
     refresh();

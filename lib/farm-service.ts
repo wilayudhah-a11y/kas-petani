@@ -1,8 +1,8 @@
 import type { FarmRecord, FarmRecordDraft, Project, ProjectDraft, ProjectStatus } from "@/types";
 import * as repository from "@/lib/farm-repository";
 
-export async function loadFarmData() {
-  return repository.listFarmData();
+export async function loadFarmData(farmerId?: string) {
+  return repository.listFarmData(farmerId);
 }
 
 export async function saveProject(project: ProjectDraft): Promise<Project> {

@@ -28,6 +28,7 @@ function throwRepositoryError(error: unknown, fallback: string): never {
 function normalizeProject(row: any): Project {
   return {
     id: String(row.id),
+    farmer_id: row.farmer_id || undefined,
     name: row.name,
     crop: row.crop,
     variety: row.variety || undefined,
@@ -71,6 +72,7 @@ function normalizeRecord(row: any): FarmRecord {
 
 function projectInsertPayload(project: ProjectDraft) {
   return {
+    farmer_id: project.farmer_id || null,
     name: project.name,
     crop: project.crop,
     variety: project.variety || null,
@@ -134,25 +136,40 @@ function createLocalRecord(record: FarmRecordDraft): FarmRecord {
   });
 }
 
-export async function listFarmData(): Promise<FarmData> {
+export async function listFarmData(farmerId?: string): Promise<FarmData> {
   if (!hasSupabase || !supabase) {
+    const localProjects = farmerId ? getProjects().filter((project) => project.farmer_id === farmerId) : getProjects();
+    const localProjectIds = new Set(localProjects.map((project) => project.id));
+    const localRecords = farmerId ? getRecords().filter((record) => localProjectIds.has(record.project_id)) : getRecords();
     return {
       source: "local",
-      projects: getProjects(),
-      records: getRecords(),
+      projects: localProjects,
+      records: localRecords,
     };
   }
 
-  const [projectsRes, recordsRes] = await Promise.all([
-    supabase.from("projects").select("*").order("created_at", { ascending: false }),
-    supabase
-      .from("records")
-      .select("*")
-      .order("record_date", { ascending: false })
-      .order("created_at", { ascending: false }),
-  ]);
+  let projectsQuery = supabase.from("projects").select("*").order("created_at", { ascending: false });
+  if (farmerId) projectsQuery = projectsQuery.eq("farmer_id", farmerId);
 
+  const projectsRes = await projectsQuery;
   if (projectsRes.error) throwRepositoryError(projectsRes.error, "Gagal membaca projects dari Supabase.");
+
+  const projectIds = (projectsRes.data || []).map((item: any) => item.id);
+  let recordsQuery = supabase
+    .from("records")
+    .select("*")
+    .order("record_date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (farmerId) {
+    if (projectIds.length === 0) {
+      return { source: "supabase", projects: [], records: [] };
+    }
+    recordsQuery = recordsQuery.in("project_id", projectIds);
+  }
+
+  const recordsRes = await recordsQuery;
+
   if (recordsRes.error) throwRepositoryError(recordsRes.error, "Gagal membaca records dari Supabase.");
 
   const projects = (projectsRes.data || []).map(normalizeProject);

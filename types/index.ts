@@ -1,9 +1,40 @@
 export type ProjectStatus = "berjalan" | "panen" | "selesai" | "arsip";
 export type RecordType = "expense" | "income" | "activity" | "harvest" | "note";
 export type ProjectStartMode = "preparation" | "new" | "ongoing";
+export type FarmerStatus = "aktif" | "nonaktif";
+export type ProfileRole = "admin" | "farmer";
+
+export type FarmerProfile = {
+  id: string;
+  name: string;
+  phone: string;
+  pin_hash?: string;
+  role: ProfileRole;
+  status: FarmerStatus;
+  note?: string;
+  created_at: string;
+  updated_at?: string;
+};
+
+export type FarmerDraft = {
+  id?: string;
+  name: string;
+  phone: string;
+  pin?: string;
+  status?: FarmerStatus;
+  note?: string;
+};
+
+export type FarmerSession = {
+  id: string;
+  name: string;
+  phone: string;
+  role: ProfileRole;
+};
 
 export type Project = {
   id: string;
+  farmer_id?: string;
   name: string;
   crop: string;
   variety?: string;
@@ -22,6 +53,7 @@ export type Project = {
 
 export type ProjectDraft = {
   id?: string;
+  farmer_id?: string;
   name: string;
   crop: string;
   variety?: string;
